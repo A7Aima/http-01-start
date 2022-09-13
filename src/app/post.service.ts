@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Post } from './post.model';
 import { Subject, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
@@ -27,11 +27,18 @@ export class PostService {
 
   fetchPost(url: string) {
     // this request is sending the observable but doesn't get called until it get subscribed
+    let searchParams = new HttpParams();
+    searchParams = searchParams.append('print', 'pretty');
+    searchParams = searchParams.append('Custm', 'key');
     return this.http
       .get<{ [key: string]: Post }>(url, {
         headers: new HttpHeaders({
           'Custom-Header': 'Hello', // for test
         }),
+        observe: 'response',
+        params: searchParams,
+        responseType: 'json',
+        // new HttpParams().set('print', 'pretty'),
       })
       .pipe(
         map((responseData) => {
@@ -50,6 +57,14 @@ export class PostService {
   }
 
   deletePost(url: string) {
-    return this.http.delete(url);
+    return this.http
+      .delete(url, {
+        observe: 'events',
+      })
+      .pipe(
+        tap((events) => {
+          console.log(events);
+        })
+      );
   }
 }
