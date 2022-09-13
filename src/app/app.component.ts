@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs';
+import { Post } from './post.model';
+import { NgForm } from '@angular/forms';
+import { PostService } from './post.service';
 
 @Component({
   selector: 'app-root',
@@ -8,45 +11,38 @@ import { map } from 'rxjs';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  loadedPosts = [];
+  loadedPosts: Post[] = [];
+  @ViewChild("postForm") form: NgForm;
+  isFetching = false;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private postService: PostService) { }
 
   ngOnInit() {
-    this.fetchPost();
+    this.onFetchPosts();
   }
 
   url: string = 'https://http-angular-test-c4fd2-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json'
-  onCreatePost(postData: { title: string; content: string }) {
+  onCreatePost(postData: Post) {
     // Send Http request
-    console.log(postData);
-    this.http.post(this.url, postData).subscribe(responseData => {
-      console.log(responseData);
-    });
+    this.postService.createAndStorePost(postData.title, postData.content, this.url);
+    this.form.reset();
   }
 
   onFetchPosts() {
-    this.fetchPost();
+    this.isFetching = true;
+    this.postService.fetchPost(this.url)
+      .subscribe(body => {
+        this.isFetching = false;
+        this.loadedPosts = body;
+      });
     // Send Http request
   }
 
   onClearPosts() {
     // Send Http request
+    this.postService.deletePost(this.url).subscribe(() => {
+      this.loadedPosts = [];
+    });
   }
 
-  private fetchPost() {
-    this.http.get(this.url)
-      .pipe(map(responseData => {
-        const postArray = [];
-        for (const key in responseData) {
-          if (responseData.hasOwnProperty(key)) {
-            postArray.push({ ...responseData[key], id: key });
-          }
-        }
-        return postArray;
-      }))
-      .subscribe(body => {
-        console.log(body);
-      });
-  }
 }
